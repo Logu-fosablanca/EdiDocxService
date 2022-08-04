@@ -62,8 +62,7 @@ export async function getDocx(req, res) {
   let tempElementCode = elementCode;
   let testversion = version.replace(/\//g, "_");
 
-  let fileName =
-    businessPartnerText + "_" + transactionSet + "_" + testversion + ".docx";
+  let fileName =  businessPartnerText + "_" + transactionSet + "_" + testversion + ".docx";
 
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", "attachment; filename=" + fileName);
