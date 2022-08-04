@@ -8,12 +8,9 @@ let server = createServer(app);
 server.listen(port);
 console.log("Server listening on port " + port);
 
-
 import {getDocx} from "./docx.js";
 
 app.use(bodyparser.json());
 
 
-
-
-app.post('/api/create/docx',getDocx);
+app.post('/api/docx/create',getDocx) 

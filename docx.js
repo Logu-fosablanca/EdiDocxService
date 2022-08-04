@@ -10,6 +10,7 @@ const {
   Paragraph,
   TextRun,
   UnderlineType,
+  ImageRun,
   WidthType,
   Table,
   TableCell,
@@ -17,9 +18,14 @@ const {
   Header,
   BorderStyle,
   SectionType,
+  TextWrappingType,
+  TextWrappingSide,
+  PageBreak,
 } = docx;
 import path from "path";
 import { fileURLToPath } from "url";
+import pkg from "file-saver";
+const { saveAs } = pkg;
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -43,15 +49,15 @@ export async function getDocx(req, res) {
   let numberOfDetailSegments = params.numberOfDetailSegments;
   let numberOfSummarySegments = params.numberOfSummarySegments;
   let presentLoop = "";
-
-  // params.segmentUsage=params.segmentUsage.substring(1,params.segmentUsage.length-1);
   console.log(params.segmentUsage);
 
-  let segmentUsage = JSON.parse(params.segmentUsage);
-  let numberOfElementsInSegment = JSON.parse(params.numberOfElementsInSegment);
-  let elementUsageDefs = JSON.parse(params.elementUsageDefs);
-  let segmentText = JSON.parse(params.segmentText);
-  let elementCode = JSON.parse(params.code);
+  let segmentUsage = JSON.parse(JSON.stringify(params.segmentUsage));
+  let numberOfElementsInSegment = JSON.parse(
+    JSON.stringify(params.numberOfElementsInSegment)
+  );
+  let elementUsageDefs = JSON.parse(JSON.stringify(params.elementUsageDefs));
+  let segmentText = JSON.parse(JSON.stringify(params.segmentText));
+  let elementCode = JSON.parse(JSON.stringify(params.code));
   let y, z, a;
   let tempElementCode = elementCode;
   let testversion = version.replace(/\//g, "_");
@@ -67,6 +73,7 @@ export async function getDocx(req, res) {
   console.log("end of file");
   console.log(req);
 
+  let x;
   for (x in tempElementCode) {
     for (y in tempElementCode[x]) {
       for (z in tempElementCode[x][y]) {
@@ -79,8 +86,10 @@ export async function getDocx(req, res) {
     segmentText[y] = segmentText[y].split("$");
   }
 
-  // Segment Table
+  // This Displays the Segment Usage part of the Application
+
   let segmentData = Object.values(segmentUsage);
+  console.log(segmentData);
   let segmentDataHead = [];
 
   let segmentArray = segmentData.map((segment) => {
@@ -136,69 +145,72 @@ export async function getDocx(req, res) {
         }),
       ],
     });
-  })
+  });
 
+  // This the Table Header for the Segment Usage Table in the Word Document (docx)
 
-  let SegmentHeader= [new TableRow({
-    children: [
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Position",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "SegmentId",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Segment Name",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Req NO",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "MAX USE",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "REPEAT",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: " ",
-            bold: true,
-          }),
-        ],
-      }),
-    ],
-})]
+  let SegmentHeader = [
+    new TableRow({
+      children: [
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Position",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "SegmentId",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Segment Name",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Req NO",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "MAX USE",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "REPEAT",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: " ",
+              bold: true,
+            }),
+          ],
+        }),
+      ],
+    }),
+  ];
 
   for (let x in segmentData) {
     console.log(segmentData[x]);
@@ -227,167 +239,239 @@ export async function getDocx(req, res) {
         color: "ff8000",
       },
     },
-    rows: [...SegmentHeader,...segmentArray],    
-    
+    rows: [...SegmentHeader, ...segmentArray],
   });
 
-  // Element Table
+  /* 
+
+ For each segment part we will be displaying a certain set of the Elemts Used in the Application 
+ So we will be creating a dictionary that stores the values and its segment id as key value pair
+ 
+*/
+
+  let segmentelementMap = {};
+  for (x in segmentData) {
+    segmentelementMap[segmentData[x].SegmentID] = segmentData[x].Description;
+  }
+
   let elementData = Object.values(elementUsageDefs);
-  let elementDataIndex = Object.values(elementData[0]);
+  let elementDataIndex = Object.values(elementData);
   console.log(elementDataIndex);
   let elementDataHead = [];
-
-  let elementusafeheader= [new TableRow({
-    children: [
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Position",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "SegmentID",
-            bold: true,
-          }), 
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Segment Name",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "REQ NO",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Type",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Min/Max",
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: "Notes",
-            bold: true,
-          }),
-        ],
-      }),
-    ],
-})]
-
-//Sidebox Summaary 
-let sideboxsummary = [new TableRow({
-  children: [
-    new TableCell({
-      children: [
-        new Paragraph({
-        text: "POS",
-        bold: true,})
-      ],
-    })
-  ],
-})]
-
-let elementArray= elementDataIndex.map((element) => {
-  return new TableRow({
-    children: [
-
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: element.SegmentID,
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: element.ElementID,
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: element.Description,
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: element.RequirementDesignator,
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: element.Type,
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: element.MinimumLength + "/" + element.MaximumLength,
-            bold: true,
-          }),
-        ],
-      }),
-      new TableCell({
-        children: [
-          new Paragraph({
-            text: " ",
-            bold: true,
-          }),
-        ],
-      }),
-    ],
-  });
-})
-
-
   for (let x in elementDataIndex) {
     for (y in elementDataIndex[x]) {
       elementDataHead.push(y);
     }
     break;
   }
+
+  let SegmentIDlist = [];
+  let tablelist = {};
+
+  for (let x in elementDataIndex) {
+    console.log(" New Dictionary " + x);
+    for (let y in elementDataIndex[x]) {
+      console.log("the object " + JSON.stringify(elementDataIndex[x][y]));
+      if (SegmentIDlist.indexOf(elementDataIndex[x][y].SegmentID) == -1) {
+        SegmentIDlist.push(elementDataIndex[x][y].SegmentID);
+      }
+
+      if (tablelist[elementDataIndex[x][y].SegmentID] == undefined) {
+        tablelist[elementDataIndex[x][y].SegmentID] = [];
+      }
+      tablelist[elementDataIndex[x][y].SegmentID].push(elementDataIndex[x][y]);
+
+      for (let z in elementDataIndex[x][y]) {
+        console.log(elementDataIndex[x][y].SegmentID);
+      }
+    }
+  }
+  console.log(tablelist);
+
+  /*
+The section should have
+  ...arrray of tables 
+
+
+  and push the entire table into the table array 
   
+    each table'function will return a table from the respective segmentid  
+             1) with ElementTableHeader 
+             2) Table Data   [ Store all these in an array and merge them up  ][...ElementTableHeader, ...TableData] with table data is equivalent to element = element.map{
+              return new TableRow{
+                  children: [....]
+              }
+             }
 
-  const ElementDatatable = new Table({
 
-    rows: [...elementusafeheader,...elementArray],
-  });
+*/
+  function ElementTableRowGenerator(segmentId, object) {
+    let tablerows = object.map((element) => {
+      return new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: element.SegmentID,
+                bold: true,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: element.ElementID,
+                bold: true,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: element.Description,
+                bold: true,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: element.RequirementDesignator,
+                bold: true,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: element.Type,
+                bold: true,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: element.MinimumLength + "/" + element.MaximumLength,
+                bold: true,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: " ",
+                bold: true,
+              }),
+            ],
+          }),
+        ],
+      });
+    });
+    return tablerows;
+  }
+
+  let ElementTableHeader = [
+    new TableRow({
+      children: [
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Position",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "SegmentID",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Segment Name",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "REQ NO",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Type",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Min/Max",
+              bold: true,
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              text: "Notes",
+              bold: true,
+            }),
+          ],
+        }),
+      ],
+    }),
+  ];
+
+  function ElementsTableGenerator(object) {
+    let document = [];
+    Object.keys(object).map(function (segmentId, ElemtsArray) {
+      console.log(object[segmentId]);
+      document.push(
+        new Paragraph({
+          text: segmentId + " " + segmentelementMap[segmentId],
+          bold: true,
+          run: {
+            italics: true,
+            color: "999999",
+          },
+        })
+      );
+      document.push(
+        new Paragraph({
+          text: "Element Summary",
+          bold: true,
+        })
+      );
+      document.push(
+        new Table({
+          rows: [].concat(
+            ElementTableHeader,
+            ElementTableRowGenerator(segmentId, object[segmentId])
+          ),
+        })
+      );
+      document.push(
+        new Paragraph({
+          children: [new PageBreak()],
+        })
+      );
+    });
+    return document;
+  }
+
+  let ElementDocumenttables = ElementsTableGenerator(tablelist);
 
   const doc = new Document({
     creator: "EDI Document Generator",
@@ -420,7 +504,7 @@ let elementArray= elementDataIndex.map((element) => {
                     style: "single",
                     size: 6,
                   },
-                  bottom: { 
+                  bottom: {
                     color: "#000000",
                     space: 1,
                     style: "single",
@@ -428,6 +512,30 @@ let elementArray= elementDataIndex.map((element) => {
                   },
                 },
                 children: [
+                  // image,
+                  new ImageRun({
+                    data: fs.readFileSync("./assets/logo.jpg"),
+                    transformation: {
+                      width: 70,
+                      height: 70,
+                    },
+                    floating: {
+                      horizontalPosition: {
+                        offset: 514400,
+                      },
+                      verticalPosition: {
+                        offset: 514400,
+                      },
+                      wrap: {
+                        type: TextWrappingType.SQUARE,
+                        side: TextWrappingSide.BOTH_SIDES,
+                      },
+                      margins: {
+                        top: 201440,
+                        bottom: 201440,
+                      },
+                    },
+                  }),
                   new TextRun(transactionSet),
                   new Paragraph(
                     "VER." + version + " " + transactionDescription
@@ -443,54 +551,44 @@ let elementArray= elementDataIndex.map((element) => {
 
         children: [
           new Paragraph({
-            text: "Segmentation",
+            text: "Segmentation - Elements Map",
             bold: true,
           }),
-          SegmentDatatable],
+          SegmentDatatable,
+        ],
       },
     ],
   });
-  
- 
-  doc.addSection(
-    {
-      // Element Part
-      shading: {
-        color: "00FFFF",
-        fill: "FF0000",
-      },
-      border: {
-        top: {
-          color: "auto",
-          space: 1,
-          style: "single",
-          size: 6,
-        },
-        bottom: {
-          color: "auto",
-          space: 1,
-          style: "single",
-          size: 6,
-        },
-      },
-      children: [
-        new Paragraph({
-          text: "Element Summary",
-          bold: true,
-        }),
-        ElementDatatable,
-      ],
-    }
-  ); 
 
-  console.log(segmentArray.length);
-  console.log(SegmentHeader.length);
+  doc.addSection({
+    // Element Part
+    shading: {
+      color: "00FFFF",
+      fill: "FF0000",
+    },
+    border: {
+      top: {
+        color: "auto",
+        space: 1,
+        style: "single",
+        size: 6,
+      },
+      bottom: {
+        color: "auto",
+        space: 1,
+        style: "single",
+        size: 6,
+      },
+    },
+    children: [...ElementDocumenttables],
+  });
+
   // Used to export the file into a .docx file
 
   Packer.toBuffer(doc).then((buffer) => {
     fs.createWriteStream(filePath);
     fs.writeFileSync(fileName, buffer);
   });
-  // filesaver.saveAs
+
   res.send("ok");
 }
